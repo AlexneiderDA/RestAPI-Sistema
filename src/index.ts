@@ -1,5 +1,6 @@
 import express from 'express';
 import userRouter from './routes/user.router.js'; // Nota la extensión .js
+import authRouter from './routes/auth.router.js'; // Nota la extensión .js
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,7 +11,8 @@ app.get('/', (req, res) => {
   res.status(200).send('Server is OK');
 });
 
-app.use('/api', userRouter);  
+app.use('/api', userRouter);
+app.use('/api/auth', authRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

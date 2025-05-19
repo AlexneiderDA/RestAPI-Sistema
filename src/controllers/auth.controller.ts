@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 /**
  * Registra un nuevo usuario
  */
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   const { name, email, password } = req.body as RegisterInput;
 
   try {
@@ -21,7 +21,8 @@ export const register = async (req: Request, res: Response) => {
     });
 
     if (existingUser) {
-      return res.status(409).json({ error: 'El correo electrónico ya está registrado' });
+      res.status(409).json({ error: 'El correo electrónico ya está registrado' });
+      return;
     }
 
     // Hash de la contraseña
@@ -66,7 +67,7 @@ export const register = async (req: Request, res: Response) => {
 /**
  * Inicia sesión de usuario
  */
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body as LoginInput;
 
   try {
@@ -76,13 +77,15 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
+      res.status(401).json({ error: 'Credenciales inválidas' });
+      return;
     }
 
     // Verificar contraseña
     const passwordValid = await verifyPassword(password, user.password);
     if (!passwordValid) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
+      res.status(401).json({ error: 'Credenciales inválidas' });
+      return;
     }
 
     // Generar tokens
@@ -114,11 +117,12 @@ export const login = async (req: Request, res: Response) => {
 /**
  * Refresca el token de autenticación usando el refresh token
  */
-export const refreshAccessToken = async (req: Request, res: Response) => {
+export const refreshAccessToken = async (req: Request, res: Response): Promise<void> => {
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
-    return res.status(401).json({ error: 'Refresh token no proporcionado' });
+    res.status(401).json({ error: 'Refresh token no proporcionado' });
+    return;
   }
 
   try {
@@ -131,7 +135,8 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Usuario no encontrado' });
+      res.status(401).json({ error: 'Usuario no encontrado' });
+      return;
     }
 
     // Generar nuevo token de acceso
@@ -150,7 +155,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 /**
  * Cierra la sesión del usuario
  */
-export const logout = (req: Request, res: Response) => {
+export const logout = (req: Request, res: Response): void => {
   // Limpiar cookie de refresh token
   res.clearCookie('refreshToken');
   res.status(200).json({ message: 'Sesión cerrada correctamente' });

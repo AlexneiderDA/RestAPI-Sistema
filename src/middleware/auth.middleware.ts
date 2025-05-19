@@ -13,19 +13,21 @@ declare global {
 /**
  * Middleware para verificar si el usuario está autenticado
  */
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   // Obtener token del header Authorization
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+    res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+    return;
   }
 
   // Verificar token
   const decoded = verifyToken(token);
   if (!decoded) {
-    return res.status(401).json({ error: 'Token inválido o expirado.' });
+    res.status(401).json({ error: 'Token inválido o expirado.' });
+    return;
   }
 
   // Añadir información del usuario al request para uso en controladores
@@ -38,13 +40,15 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
  * @param allowedRoles Array de IDs de roles permitidos
  */
 export const authorize = (allowedRoles: number[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Usuario no autenticado.' });
+      res.status(401).json({ error: 'Usuario no autenticado.' });
+      return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'No tienes permiso para acceder a este recurso.' });
+      res.status(403).json({ error: 'No tienes permiso para acceder a este recurso.' });
+      return;
     }
 
     next();

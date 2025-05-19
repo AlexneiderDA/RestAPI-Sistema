@@ -17,23 +17,25 @@ const router = Router();
 router.get('/users', authorize([1]), getAllUsers);
 
 // Obtener un usuario por ID (autenticado puede ver sus propios datos, admin puede ver todos)
-router.get('/users/:id', ((req, res, next) => {
+router.get('/users/:id', ((req, res, next): void => {
   // Si es admin o está viendo su propio perfil, permitir
-  if (req.user.role === 1 || req.user.userId === parseInt(req.params.id)) {
-    return next();
+  if (req.user!.role === 1 || req.user!.userId === parseInt(req.params.id)) {
+    next();
+    return;
   }
-  return res.status(403).json({ error: 'No autorizado para ver este perfil' });
+  res.status(403).json({ error: 'No autorizado para ver este perfil' });
 }) as RequestHandler, getUserById);
 
 // Crear usuario (solo admin)
 router.post('/users', authorize([1]), createUser);
 
 // Actualizar un usuario (admin puede actualizar cualquiera, usuario solo a sí mismo)
-router.put('/users/:id', ((req, res, next) => {
-  if (req.user.role === 1 || req.user.userId === parseInt(req.params.id)) {
-    return next();
+router.put('/users/:id', ((req, res, next): void => {
+  if (req.user!.role === 1 || req.user!.userId === parseInt(req.params.id)) {
+    next();
+    return;
   }
-  return res.status(403).json({ error: 'No autorizado para actualizar este perfil' });
+  res.status(403).json({ error: 'No autorizado para actualizar este perfil' });
 }) as RequestHandler, updateUser);
 
 // Eliminar un usuario (solo admin)

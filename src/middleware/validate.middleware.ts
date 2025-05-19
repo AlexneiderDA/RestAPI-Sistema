@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { ZodError, ZodType } from 'zod';
 
 /**
  * Middleware para validar el cuerpo de la solicitud contra un esquema Zod
  * @param schema Esquema Zod para validación
  */
-export const validateRequest = (schema: AnyZodObject) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const validateRequest = (schema: ZodType<any>) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     try {
       // Validar el cuerpo de la solicitud contra el esquema
       schema.parse(req.body);
@@ -19,14 +19,16 @@ export const validateRequest = (schema: AnyZodObject) => {
           message: err.message
         }));
         
-        return res.status(400).json({
+        res.status(400).json({
           error: 'Validation failed',
           details: formattedErrors
         });
+        return;
       }
       
       // Para otros tipos de errores
-      return res.status(400).json({ error: 'Invalid request data' });
+      res.status(400).json({ error: 'Invalid request data' });
+      return;
     }
   };
 };
