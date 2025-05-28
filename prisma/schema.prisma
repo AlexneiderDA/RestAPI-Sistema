@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
@@ -15,21 +12,271 @@ datasource db {
 }
 
 model User {
-  id       Int   @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
-  email     String  @unique
+  email     String   @unique
   password  String
   rolId     Int
-  rol       Rol     @relation(fields: [rolId], references: [id])
+  rol       Rol      @relation(fields: [rolId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relaciones
+  profile                 UserProfile?
+  eventRegistrations      EventRegistration[]
+  certificates            Certificate[]
+  notifications           Notification[]
+  notificationPreferences UserNotificationPreferences?
+  activities              UserActivity[]
+  organizedEvents         Event[]                      @relation("EventOrganizer")
 }
 
 model Rol {
-  id       Int   @id @default(autoincrement())
-  name     String
-  users    User[]
+  id        Int      @id @default(autoincrement())
+  name      String
+  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  color       String   @default("#1C8443")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  events Event[]
+}
+
+model Event {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  description          String
+  shortDescription     String?
+  imageUrl             String?
+  startDate            DateTime
+  endDate              DateTime
+  startTime            String // Almacenado como string "HH:MM"
+  endTime              String // Almacenado como string "HH:MM"
+  location             String
+  address              String?
+  coordinates          Json? // {lat: number, lng: number}
+  directions           String?
+  categoryId           Int
+  maxCapacity          Int
+  currentRegistrations Int      @default(0)
+  requiresCertificate  Boolean  @default(false)
+  isActive             Boolean  @default(true)
+  isFeatured           Boolean  @default(false)
+  requirements         String[] // Array de strings
+  tags                 String[] // Array de strings para búsquedas
+  organizerId          Int
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relaciones
+  category      Category            @relation(fields: [categoryId], references: [id])
+  organizer     User                @relation("EventOrganizer", fields: [organizerId], references: [id])
+  schedule      EventSchedule[]
+  sessions      EventSession[]
+  registrations EventRegistration[]
+  certificates  Certificate[]
+
+  @@index([categoryId])
+  @@index([startDate])
+  @@index([isActive, isFeatured])
+}
+
+model EventSchedule {
+  id          Int      @id @default(autoincrement())
+  eventId     Int
+  startTime   String // "HH:MM"
+  endTime     String? // "HH:MM"
+  title       String
+  description String?
+  speaker     String?
+  location    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model EventSession {
+  id                   Int      @id @default(autoincrement())
+  eventId              Int
+  title                String
+  description          String?
+  startTime            String // "HH:MM"
+  endTime              String // "HH:MM"
+  speaker              String?
+  maxCapacity          Int?
+  currentRegistrations Int      @default(0)
+  requiresRegistration Boolean  @default(true)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relaciones
+  event                Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sessionRegistrations SessionRegistration[]
+
+  @@index([eventId])
+}
+
+model EventRegistration {
+  id                   Int       @id @default(autoincrement())
+  userId               Int
+  eventId              Int
+  registrationDate     DateTime  @default(now())
+  status               String    @default("registered") // registered, cancelled, attended, no-show
+  attendanceCheckedIn  DateTime?
+  attendanceCheckedOut DateTime?
+  qrCode               String?
+  notes                String?
+  cancelledAt          DateTime?
+  cancellationReason   String?
+
+  // Relaciones
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event                Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sessionRegistrations SessionRegistration[]
+  certificates         Certificate[]
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([registrationDate])
+}
+
+model SessionRegistration {
+  id                  Int       @id @default(autoincrement())
+  eventRegistrationId Int
+  sessionId           Int
+  registrationDate    DateTime  @default(now())
+  status              String    @default("registered")
+  attendanceChecked   DateTime?
+
+  // Relaciones
+  eventRegistration EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
+  session           EventSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([eventRegistrationId, sessionId])
+}
+
+model Certificate {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  eventId             Int
+  eventRegistrationId Int
+  certificateNumber   String    @unique
+  title               String
+  participationType   String    @default("participant") // participant, speaker, organizer
+  duration            String?
+  issuedDate          DateTime?
+  status              String    @default("pending") // pending, issued, downloaded, expired
+  downloadCount       Int       @default(0)
+  firstDownloadDate   DateTime?
+  lastDownloadDate    DateTime?
+  expirationDate      DateTime?
+  verificationCode    String    @unique
+  templateData        Json?
+  fileUrl             String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relaciones
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventRegistration EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([certificateNumber])
+  @@index([verificationCode])
+}
+
+model Notification {
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  type              String // certificate, event, reminder, update
+  title             String
+  message           String
+  relatedEntityType String? // event, certificate, etc.
+  relatedEntityId   Int?
+  isRead            Boolean   @default(false)
+  readAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model UserNotificationPreferences {
+  id                            Int      @id @default(autoincrement())
+  userId                        Int      @unique
+  // Preferencias de email
+  emailNewEvents                Boolean  @default(true)
+  emailEventReminders           Boolean  @default(true)
+  emailCertificatesAvailable    Boolean  @default(true)
+  emailNewsletter               Boolean  @default(false)
+  // Preferencias de plataforma
+  platformNewEvents             Boolean  @default(true)
+  platformEventReminders        Boolean  @default(true)
+  platformCertificatesAvailable Boolean  @default(true)
+  platformUpdates               Boolean  @default(false)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserActivity {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  activityType      String // event_registered, event_cancelled, certificate_downloaded, profile_updated, password_changed, email_updated
+  description       String
+  relatedEntityType String? // event, certificate, user
+  relatedEntityId   Int?
+  metadata          Json? // Datos adicionales específicos de la actividad
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime @default(now())
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model UserProfile {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  firstName       String?
+  lastName        String?
+  phone           String?
+  institution     String?
+  occupation      String?
+  biography       String?
+  profileImageUrl String?
+  dateOfBirth     DateTime?
+  country         String?
+  city            String?
+  socialLinks     Json? // {linkedin: "", twitter: "", etc.}
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
