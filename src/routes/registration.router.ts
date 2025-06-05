@@ -1,5 +1,6 @@
 // src/routes/registration.router.ts
 import { Router } from 'express';
+import { PrismaClient } from '@prisma/client';
 import {
   registerToEvent,
   cancelRegistration,
@@ -9,7 +10,7 @@ import {
   checkOutRegistration
 } from '../controllers/registration.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
-import { validateRequest } from '../middleware/validate.middleware.js';
+import { validateRequest, validateQuery, validateParams, validateBody } from '../middleware/validate.middleware.js';
 import {
   registerToEventSchema,
   cancelRegistrationSchema,
@@ -20,6 +21,7 @@ import {
 import { eventIdSchema } from '../schemas/event.schema.js';
 
 const router = Router();
+const prisma = new PrismaClient();
 
 // Todas las rutas requieren autenticación
 router.use(authenticate);
@@ -31,8 +33,8 @@ router.use(authenticate);
  * Registrarse a un evento específico
  */
 router.post('/events/:id/register',
-  validateRequest(eventIdSchema, 'params'),
-  validateRequest(registerToEventSchema),
+  validateParams(eventIdSchema),
+  validateBody(registerToEventSchema),
   registerToEvent
 );
 
@@ -43,7 +45,7 @@ router.post('/events/:id/register',
  * Obtener registros de un usuario
  */
 router.get('/users/:id/registrations',
-  validateRequest(registrationQuerySchema, 'query'),
+  validateQuery(registrationQuerySchema),
   getUserRegistrations
 );
 
@@ -52,7 +54,7 @@ router.get('/users/:id/registrations',
  * Obtener detalles de un registro específico
  */
 router.get('/registrations/:id',
-  validateRequest(registrationIdSchema, 'params'),
+  validateParams(registrationIdSchema),
   getRegistrationById
 );
 
@@ -61,8 +63,8 @@ router.get('/registrations/:id',
  * Cancelar un registro
  */
 router.delete('/registrations/:id',
-  validateRequest(registrationIdSchema, 'params'),
-  validateRequest(cancelRegistrationSchema),
+  validateParams(registrationIdSchema),
+  validateBody(cancelRegistrationSchema),
   cancelRegistration
 );
 
@@ -73,8 +75,8 @@ router.delete('/registrations/:id',
  * Marcar entrada al evento
  */
 router.post('/registrations/:id/check-in',
-  validateRequest(registrationIdSchema, 'params'),
-  validateRequest(attendanceSchema),
+  validateParams(registrationIdSchema),
+  validateBody(attendanceSchema),
   authorize([1, 3]), // admin y organizador
   checkInRegistration
 );
@@ -84,8 +86,8 @@ router.post('/registrations/:id/check-in',
  * Marcar salida del evento
  */
 router.post('/registrations/:id/check-out',
-  validateRequest(registrationIdSchema, 'params'),
-  validateRequest(attendanceSchema),
+  validateParams(registrationIdSchema),
+  validateBody(attendanceSchema),
   authorize([1, 3]), // admin y organizador
   checkOutRegistration
 );
@@ -97,8 +99,8 @@ router.post('/registrations/:id/check-out',
  * Obtener todos los registros de un evento (para organizadores)
  */
 router.get('/events/:id/registrations',
-  validateRequest(eventIdSchema, 'params'),
-  validateRequest(registrationQuerySchema, 'query'),
+  validateParams(eventIdSchema),
+  validateQuery(registrationQuerySchema),
   authorize([1, 3]),
   async (req, res) => {
     try {
@@ -201,7 +203,7 @@ router.get('/events/:id/registrations',
  * Exportar lista de registrados a CSV/Excel
  */
 router.post('/events/:id/registrations/export',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   authorize([1, 3]),
   async (req, res) => {
     try {

@@ -1,5 +1,6 @@
 // src/middleware/activity.middleware.ts
 import { Request, Response, NextFunction } from 'express';
+import { ActivityService } from '../services/activity.service.js';
 
 /**
  * Middleware para registrar actividades automáticamente

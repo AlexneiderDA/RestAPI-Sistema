@@ -1,4 +1,4 @@
-// src/routes/event.router.ts
+// src/routes/event.router.ts (Corrección)
 import { Router, RequestHandler } from 'express';
 import {
   getAllEvents,
@@ -9,7 +9,7 @@ import {
   getFeaturedEvents
 } from '../controllers/event.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
-import { validateRequest } from '../middleware/validate.middleware.js';
+import { validateRequest, validateQuery, validateParams, validateBody } from '../middleware/validate.middleware.js';
 import { 
   createEventSchema, 
   updateEventSchema,
@@ -26,7 +26,7 @@ const router = Router();
  * Obtener todos los eventos con filtros y paginación
  */
 router.get('/', 
-  validateRequest(eventQuerySchema, 'query'), 
+  validateQuery(eventQuerySchema), 
   getAllEvents
 );
 
@@ -41,7 +41,7 @@ router.get('/featured', getFeaturedEvents);
  * Obtener evento específico por ID
  */
 router.get('/:id', 
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   getEventById
 );
 
@@ -57,7 +57,7 @@ router.use(authenticate);
  */
 router.post('/', 
   authorize([1, 3]), // 1=admin, 3=organizador
-  validateRequest(createEventSchema), 
+  validateBody(createEventSchema), 
   createEvent
 );
 
@@ -67,8 +67,8 @@ router.post('/',
  * Requiere: Ser el creador del evento o admin
  */
 router.put('/:id',
-  validateRequest(eventIdSchema, 'params'),
-  validateRequest(updateEventSchema),
+  validateParams(eventIdSchema),
+  validateBody(updateEventSchema),
   updateEvent
 );
 
@@ -78,7 +78,7 @@ router.put('/:id',
  * Requiere: Ser el creador del evento o admin
  */
 router.delete('/:id',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   deleteEvent
 );
 
@@ -90,7 +90,7 @@ router.delete('/:id',
  * Requiere: Ser el organizador del evento o admin
  */
 router.get('/:id/registrations',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   authorize([1, 3]),
   async (req, res) => {
     // Implementar lógica para obtener registrados
@@ -104,7 +104,7 @@ router.get('/:id/registrations',
  * Requiere: Ser el organizador del evento o admin
  */
 router.post('/:id/schedule',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   authorize([1, 3]),
   async (req, res) => {
     // Implementar lógica para agregar al programa
@@ -118,7 +118,7 @@ router.post('/:id/schedule',
  * Requiere: Ser el organizador del evento o admin
  */
 router.post('/:id/sessions',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   authorize([1, 3]),
   async (req, res) => {
     // Implementar lógica para agregar sesión
@@ -132,7 +132,7 @@ router.post('/:id/sessions',
  * Requiere: Ser el organizador del evento o admin
  */
 router.post('/:id/duplicate',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   authorize([1, 3]),
   async (req, res) => {
     // Implementar lógica para duplicar evento
@@ -146,7 +146,7 @@ router.post('/:id/duplicate',
  * Requiere: Solo admin
  */
 router.post('/:id/toggle-featured',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   authorize([1]),
   async (req, res) => {
     // Implementar lógica para toggle featured
@@ -160,7 +160,7 @@ router.post('/:id/toggle-featured',
  * Requiere: Ser el organizador del evento o admin
  */
 router.get('/:id/stats',
-  validateRequest(eventIdSchema, 'params'),
+  validateParams(eventIdSchema),
   authorize([1, 3]),
   async (req, res) => {
     // Implementar lógica de estadísticas

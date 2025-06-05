@@ -2,6 +2,11 @@
 /**
  * Servicio para registrar actividades de usuario
  */
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+
 export class ActivityService {
   static async logActivity(
     userId: number,

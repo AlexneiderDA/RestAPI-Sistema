@@ -1,12 +1,11 @@
-
-// src/services/email.service.ts
+// src/services/email.services.ts
 interface EventConfirmationData {
   userName: string;
   eventTitle: string;
   eventDate: Date;
   eventTime: string;
   eventLocation: string;
-  qrCode: string;
+  qrCode: string | null; // Permitir null
   sessions?: Array<{
     id: number;
     title: string;
@@ -110,6 +109,11 @@ export class EmailService {
       `• ${session.title} (${session.startTime} - ${session.endTime})`
     ).join('\n') || '';
 
+    // Manejar el caso cuando qrCode puede ser null
+    const qrSection = data.qrCode 
+      ? `📱 Código QR para asistencia: ${data.qrCode}\n\nPor favor, presenta este código QR al momento de registrar tu asistencia al evento.`
+      : `📱 Tu código QR de asistencia será generado próximamente y te será enviado por separado.`;
+
     return `
       Estimado/a ${data.userName},
 
@@ -121,9 +125,7 @@ export class EmailService {
 
       ${sessionsList ? `🎯 Sesiones registradas:\n${sessionsList}\n` : ''}
 
-      📱 Código QR para asistencia: ${data.qrCode}
-
-      Por favor, presenta este código QR al momento de registrar tu asistencia al evento.
+      ${qrSection}
 
       ¡Te esperamos!
       
@@ -172,6 +174,3 @@ export class EmailService {
     `;
   }
 }
-
-
-

@@ -1,8 +1,8 @@
-// src/schemas/event.schema.ts
+// src/schemas/event.schema.ts (Versión completamente corregida)
 import { z } from 'zod';
 
-// Schema para crear eventos
-export const createEventSchema = z.object({
+// Schema base sin validaciones complejas
+const baseEventSchema = z.object({
   title: z.string()
     .min(3, 'El título debe tener al menos 3 caracteres')
     .max(200, 'El título no puede exceder 200 caracteres'),
@@ -70,37 +70,59 @@ export const createEventSchema = z.object({
   tags: z.array(z.string().max(50))
     .max(20, 'No puedes agregar más de 20 etiquetas')
     .optional()
-}).refine(data => {
-  const startDate = new Date(data.startDate);
-  const endDate = new Date(data.endDate);
-  return endDate > startDate;
-}, {
-  message: "La fecha de fin debe ser posterior a la fecha de inicio",
-  path: ["endDate"]
-}).refine(data => {
-  // Validar que la hora de inicio sea antes que la de fin (en el mismo día)
-  const [startHour, startMin] = data.startTime.split(':').map(Number);
-  const [endHour, endMin] = data.endTime.split(':').map(Number);
-  const startMinutes = startHour * 60 + startMin;
-  const endMinutes = endHour * 60 + endMin;
-  return endMinutes > startMinutes;
-}, {
-  message: "La hora de fin debe ser posterior a la hora de inicio",
-  path: ["endTime"]
 });
 
-// Schema para actualizar eventos (todos los campos opcionales)
-export const updateEventSchema = createEventSchema.partial().refine(data => {
-  if (data.startDate && data.endDate) {
+// Tipo base para evitar referencias circulares
+type BaseEventData = z.infer<typeof baseEventSchema>;
+
+// Schema para crear eventos con validaciones personalizadas
+export const createEventSchema = baseEventSchema
+  .refine((data: BaseEventData) => {
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
     return endDate > startDate;
-  }
-  return true;
-}, {
-  message: "La fecha de fin debe ser posterior a la fecha de inicio",
-  path: ["endDate"]
-});
+  }, {
+    message: "La fecha de fin debe ser posterior a la fecha de inicio",
+    path: ["endDate"]
+  })
+  .refine((data: BaseEventData) => {
+    // Validar que la hora de inicio sea antes que la de fin (en el mismo día)
+    const [startHour, startMin] = data.startTime.split(':').map(Number);
+    const [endHour, endMin] = data.endTime.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    return endMinutes > startMinutes;
+  }, {
+    message: "La hora de fin debe ser posterior a la hora de inicio",
+    path: ["endTime"]
+  });
+
+// Schema para actualizar eventos (usando el schema base como partial)
+export const updateEventSchema = baseEventSchema.partial()
+  .refine((data: Partial<BaseEventData>) => {
+    if (data.startDate && data.endDate) {
+      const startDate = new Date(data.startDate);
+      const endDate = new Date(data.endDate);
+      return endDate > startDate;
+    }
+    return true;
+  }, {
+    message: "La fecha de fin debe ser posterior a la fecha de inicio",
+    path: ["endDate"]
+  })
+  .refine((data: Partial<BaseEventData>) => {
+    if (data.startTime && data.endTime) {
+      const [startHour, startMin] = data.startTime.split(':').map(Number);
+      const [endHour, endMin] = data.endTime.split(':').map(Number);
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = endHour * 60 + endMin;
+      return endMinutes > startMinutes;
+    }
+    return true;
+  }, {
+    message: "La hora de fin debe ser posterior a la hora de inicio",
+    path: ["endTime"]
+  });
 
 // Schema para query parameters de búsqueda
 export const eventQuerySchema = z.object({
@@ -148,8 +170,8 @@ export const eventQuerySchema = z.object({
     .default('asc')
 });
 
-// Schema para programación de eventos
-export const eventScheduleSchema = z.object({
+// Schema base para programación de eventos
+const baseEventScheduleSchema = z.object({
   startTime: z.string()
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
   
@@ -179,8 +201,11 @@ export const eventScheduleSchema = z.object({
     .default(0)
 });
 
-// Schema para sesiones de eventos
-export const eventSessionSchema = z.object({
+// Schema para programación de eventos (sin validaciones adicionales por ahora)
+export const eventScheduleSchema = baseEventScheduleSchema;
+
+// Schema base para sesiones de eventos
+const baseEventSessionSchema = z.object({
   title: z.string()
     .min(3, 'El título debe tener al menos 3 caracteres')
     .max(200, 'El título no puede exceder 200 caracteres'),
@@ -209,7 +234,13 @@ export const eventSessionSchema = z.object({
   
   isActive: z.boolean()
     .default(true)
-}).refine(data => {
+});
+
+// Tipo para sesiones para evitar referencias circulares
+type BaseSessionData = z.infer<typeof baseEventSessionSchema>;
+
+// Schema para sesiones de eventos con validaciones
+export const eventSessionSchema = baseEventSessionSchema.refine((data: BaseSessionData) => {
   const [startHour, startMin] = data.startTime.split(':').map(Number);
   const [endHour, endMin] = data.endTime.split(':').map(Number);
   const startMinutes = startHour * 60 + startMin;
@@ -231,8 +262,8 @@ export const eventIdSchema = z.object({
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 export type EventQueryInput = z.infer<typeof eventQuerySchema>;
-export type EventScheduleInput = z.infer<typeof eventScheduleSchema>;
-export type EventSessionInput = z.infer<typeof eventSessionSchema>;
+export type EventScheduleInput = z.infer<typeof baseEventScheduleSchema>;
+export type EventSessionInput = z.infer<typeof baseEventSessionSchema>;
 export type EventIdParams = z.infer<typeof eventIdSchema>;
 
 // Función helper para validar coordinadas
