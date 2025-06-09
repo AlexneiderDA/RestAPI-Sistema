@@ -29,6 +29,9 @@ model User {
   notificationPreferences UserNotificationPreferences?
   activities              UserActivity[]
   organizedEvents         Event[]                      @relation("EventOrganizer")
+  lasLoginAT           DateTime?
+  dashboardMetrics        DashboardMetric[]            // Relation to DashboardMetric
+  @@index([rolId, createdAt])
 }
 
 model Rol {
@@ -88,6 +91,9 @@ model Event {
   @@index([categoryId])
   @@index([startDate])
   @@index([isActive, isFeatured])
+  @@index([organizerId, isActive, startDate]) // Para próximos eventos del organizador
+  @@index([organizerId, isActive, endDate])   // Para eventos completados del organizador
+  @@index([organizerId, createdAt])           // Para trends de eventos creados
 }
 
 model EventSchedule {
@@ -154,6 +160,10 @@ model EventRegistration {
   @@index([eventId])
   @@index([status])
   @@index([registrationDate])
+  @@index([eventId, status])                                    // Para contar registros por evento
+  @@index([registrationDate, status])                           // Para registros por fecha
+  @@index([attendanceCheckedIn])                               // Para asistencias por fecha
+  @@index([userId, registrationDate])                          // Para actividad del usuario
 }
 
 model SessionRegistration {
@@ -201,25 +211,36 @@ model Certificate {
   @@index([status])
   @@index([certificateNumber])
   @@index([verificationCode])
+  // Nuevos índices para dashboard
+  @@index([eventId, status])        // Para contar constancias por evento
+  @@index([issuedDate])             // Para constancias por fecha
+  @@index([userId, issuedDate])     // Para actividad del usuario
 }
 
 model Notification {
   id                Int       @id @default(autoincrement())
   userId            Int
-  type              String // certificate, event, reminder, update
+  type              String
   title             String
   message           String
-  relatedEntityType String? // event, certificate, etc.
+  relatedEntityType String?
   relatedEntityId   Int?
   isRead            Boolean   @default(false)
   readAt            DateTime?
   createdAt         DateTime  @default(now())
+  
+  // Nuevo campo para prioridad
+  priority          String    @default("normal") // high, normal, low
 
-  // Relaciones
+  // Relaciones existentes...
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([createdAt])
+  // Nuevos índices para dashboard
+  @@index([userId, isRead, createdAt])    // Para notificaciones del dashboard
+  @@index([userId, type, createdAt])      // Para notificaciones por tipo
+  @@index([priority, createdAt])          // Para notificaciones prioritarias
 }
 
 model UserNotificationPreferences {
@@ -258,6 +279,10 @@ model UserActivity {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([userId, activityType, createdAt]) // Para actividad por tipo
+  @@index([activityType, createdAt])         // Para estadísticas globales
+  @@index([relatedEntityType, relatedEntityId, createdAt]) // Para actividad por entidad
+
 }
 
 model UserProfile {
@@ -279,4 +304,22 @@ model UserProfile {
 
   // Relaciones
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DashboardMetric {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     // null para métricas globales
+  metricType  String   // events_created, registrations_today, etc.
+  metricValue Json     // valor flexible (number, object, etc.)
+  dateKey     String   // YYYY-MM-DD para métricas diarias
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relación opcional con usuario
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, metricType, dateKey])
+  @@index([userId, metricType, dateKey])
+  @@index([metricType, dateKey])
+  @@index([dateKey])
 }

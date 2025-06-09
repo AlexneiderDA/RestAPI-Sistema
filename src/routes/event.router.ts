@@ -1,4 +1,4 @@
-// src/routes/event.router.ts (Corrección)
+// src/routes/event.router.ts
 import { Router, RequestHandler } from 'express';
 import {
   getAllEvents,
@@ -9,7 +9,7 @@ import {
   getFeaturedEvents
 } from '../controllers/event.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
-import { validateRequest, validateQuery, validateParams, validateBody } from '../middleware/validate.middleware.js';
+import { validateRequest } from '../middleware/validate.middleware.js';
 import { 
   createEventSchema, 
   updateEventSchema,
@@ -19,36 +19,38 @@ import {
 
 const router = Router();
 
-// ===== RUTAS PÚBLICAS =====
+// ===== RUTAS PÚBLICAS (NO REQUIEREN AUTENTICACIÓN) =====
 
 /**
  * GET /api/events
  * Obtener todos los eventos con filtros y paginación
+ * ⭐ PÚBLICO - NO REQUIERE AUTENTICACIÓN
  */
-router.get('/', 
-  validateQuery(eventQuerySchema), 
-  getAllEvents
-);
+router.get('/', getAllEvents);
 
 /**
  * GET /api/events/featured
  * Obtener eventos destacados (para carrusel)
+ * ⭐ PÚBLICO - NO REQUIERE AUTENTICACIÓN
  */
 router.get('/featured', getFeaturedEvents);
 
 /**
  * GET /api/events/:id
  * Obtener evento específico por ID
+ * ⭐ PÚBLICO - NO REQUIERE AUTENTICACIÓN
  */
-router.get('/:id', 
-  validateParams(eventIdSchema),
-  getEventById
-);
+router.get('/:id', getEventById);
 
-// ===== RUTAS PROTEGIDAS =====
+// ===== PUNTO DE CONTROL - A PARTIR DE AQUÍ SE REQUIERE AUTENTICACIÓN =====
 
-// Middleware de autenticación para todas las rutas siguientes
+/**
+ * Middleware de autenticación para todas las rutas siguientes
+ * ⚠️ IMPORTANTE: Este middleware debe estar DESPUÉS de las rutas públicas
+ */
 router.use(authenticate);
+
+// ===== RUTAS PROTEGIDAS (REQUIEREN AUTENTICACIÓN) =====
 
 /**
  * POST /api/events
@@ -57,7 +59,7 @@ router.use(authenticate);
  */
 router.post('/', 
   authorize([1, 3]), // 1=admin, 3=organizador
-  validateBody(createEventSchema), 
+  validateRequest(createEventSchema), 
   createEvent
 );
 
@@ -67,8 +69,8 @@ router.post('/',
  * Requiere: Ser el creador del evento o admin
  */
 router.put('/:id',
-  validateParams(eventIdSchema),
-  validateBody(updateEventSchema),
+  validateRequest(eventIdSchema, 'params'),
+  validateRequest(updateEventSchema),
   updateEvent
 );
 
@@ -78,11 +80,11 @@ router.put('/:id',
  * Requiere: Ser el creador del evento o admin
  */
 router.delete('/:id',
-  validateParams(eventIdSchema),
+  validateRequest(eventIdSchema, 'params'),
   deleteEvent
 );
 
-// ===== RUTAS ESPECÍFICAS DE GESTIÓN =====
+// ===== RUTAS ESPECÍFICAS DE GESTIÓN (REQUIEREN AUTENTICACIÓN) =====
 
 /**
  * GET /api/events/:id/registrations
@@ -90,10 +92,9 @@ router.delete('/:id',
  * Requiere: Ser el organizador del evento o admin
  */
 router.get('/:id/registrations',
-  validateParams(eventIdSchema),
+  validateRequest(eventIdSchema, 'params'),
   authorize([1, 3]),
   async (req, res) => {
-    // Implementar lógica para obtener registrados
     res.json({ message: 'Lista de registrados - Por implementar' });
   }
 );
@@ -104,10 +105,9 @@ router.get('/:id/registrations',
  * Requiere: Ser el organizador del evento o admin
  */
 router.post('/:id/schedule',
-  validateParams(eventIdSchema),
+  validateRequest(eventIdSchema, 'params'),
   authorize([1, 3]),
   async (req, res) => {
-    // Implementar lógica para agregar al programa
     res.json({ message: 'Agregar al programa - Por implementar' });
   }
 );
@@ -118,10 +118,9 @@ router.post('/:id/schedule',
  * Requiere: Ser el organizador del evento o admin
  */
 router.post('/:id/sessions',
-  validateParams(eventIdSchema),
+  validateRequest(eventIdSchema, 'params'),
   authorize([1, 3]),
   async (req, res) => {
-    // Implementar lógica para agregar sesión
     res.json({ message: 'Agregar sesión - Por implementar' });
   }
 );
@@ -132,10 +131,9 @@ router.post('/:id/sessions',
  * Requiere: Ser el organizador del evento o admin
  */
 router.post('/:id/duplicate',
-  validateParams(eventIdSchema),
+  validateRequest(eventIdSchema, 'params'),
   authorize([1, 3]),
   async (req, res) => {
-    // Implementar lógica para duplicar evento
     res.json({ message: 'Duplicar evento - Por implementar' });
   }
 );
@@ -146,10 +144,9 @@ router.post('/:id/duplicate',
  * Requiere: Solo admin
  */
 router.post('/:id/toggle-featured',
-  validateParams(eventIdSchema),
+  validateRequest(eventIdSchema, 'params'),
   authorize([1]),
   async (req, res) => {
-    // Implementar lógica para toggle featured
     res.json({ message: 'Toggle featured - Por implementar' });
   }
 );
@@ -160,10 +157,9 @@ router.post('/:id/toggle-featured',
  * Requiere: Ser el organizador del evento o admin
  */
 router.get('/:id/stats',
-  validateParams(eventIdSchema),
+  validateRequest(eventIdSchema, 'params'),
   authorize([1, 3]),
   async (req, res) => {
-    // Implementar lógica de estadísticas
     res.json({ message: 'Estadísticas del evento - Por implementar' });
   }
 );

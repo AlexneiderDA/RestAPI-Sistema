@@ -4,23 +4,28 @@ import authRouter from './auth.router.js';
 import userRouter from './user.router.js';
 import eventRouter from './event.router.js';
 import registrationRouter from './registration.router.js';
-// import categoryRouter from './category.router.js';
-// import certificateRouter from './certificate.router.js';
-// import notificationRouter from './notification.router.js';
+import categoryRouter from './category.router.js';
+import dashboardRouter from './dashboard.router.js';
 
 const router = Router();
 
-// Rutas de autenticación
+// ===== RUTAS PÚBLICAS =====
+// Rutas de autenticación (públicas)
 router.use('/auth', authRouter);
 
-// Rutas de usuarios
-router.use('/', userRouter);
-
-// Rutas de eventos
+// Rutas de eventos (públicas para GET, protegidas para POST/PUT/DELETE)
 router.use('/events', eventRouter);
 
-// Rutas de registros
+router.use('/', categoryRouter);
+
+// ===== RUTAS PROTEGIDAS =====
+// Rutas de usuarios (requieren autenticación)
+router.use('/', userRouter);
+
+// Rutas de registros (requieren autenticación)
 router.use('/', registrationRouter);
+
+router.use('/dashboard', dashboardRouter);
 
 // Rutas que implementarás después:
 // router.use('/categories', categoryRouter);
@@ -34,7 +39,7 @@ router.get('/health', (req, res) => {
     message: 'API funcionando correctamente',
     timestamp: new Date().toISOString(),
     services: {
-      database: 'connected', // Aquí podrías verificar la conexión real
+      database: 'connected',
       cache: 'not_implemented',
       email: 'configured'
     }
@@ -50,10 +55,22 @@ router.get('/info', (req, res) => {
       version: '1.0.0',
       description: 'API REST para gestión de eventos académicos y generación de constancias',
       endpoints: {
-        auth: '/api/auth',
-        events: '/api/events',
-        registrations: '/api/registrations',
-        users: '/api/users'
+        public: {
+          events: 'GET /api/events',
+          featured: 'GET /api/events/featured',
+          eventDetails: 'GET /api/events/:id',
+          health: 'GET /api/health'
+        },
+        auth: {
+          login: 'POST /api/auth/login',
+          register: 'POST /api/auth/register',
+          logout: 'POST /api/auth/logout'
+        },
+        protected: {
+          createEvent: 'POST /api/events (auth required)',
+          registerToEvent: 'POST /api/events/:id/register (auth required)',
+          userProfile: 'GET /api/users/:id (auth required)'
+        }
       }
     }
   });
