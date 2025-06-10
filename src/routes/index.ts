@@ -6,6 +6,7 @@ import eventRouter from './event.router.js';
 import registrationRouter from './registration.router.js';
 import categoryRouter from './category.router.js';
 import dashboardRouter from './dashboard.router.js';
+import userProfileRouter from './user-profile.router.js';
 
 const router = Router();
 
@@ -18,12 +19,15 @@ router.use('/events', eventRouter);
 
 router.use('/', categoryRouter);
 
+
 // ===== RUTAS PROTEGIDAS =====
 // Rutas de usuarios (requieren autenticación)
 router.use('/', userRouter);
 
 // Rutas de registros (requieren autenticación)
 router.use('/', registrationRouter);
+
+router.use('/user-profile', userProfileRouter);
 
 router.use('/dashboard', dashboardRouter);
 
@@ -55,22 +59,20 @@ router.get('/info', (req, res) => {
       version: '1.0.0',
       description: 'API REST para gestión de eventos académicos y generación de constancias',
       endpoints: {
-        public: {
-          events: 'GET /api/events',
-          featured: 'GET /api/events/featured',
-          eventDetails: 'GET /api/events/:id',
-          health: 'GET /api/health'
-        },
-        auth: {
-          login: 'POST /api/auth/login',
-          register: 'POST /api/auth/register',
-          logout: 'POST /api/auth/logout'
-        },
-        protected: {
-          createEvent: 'POST /api/events (auth required)',
-          registerToEvent: 'POST /api/events/:id/register (auth required)',
-          userProfile: 'GET /api/users/:id (auth required)'
-        }
+        'GET /': 'Obtener perfil completo del usuario autenticado',
+        'GET /dashboard': 'Obtener datos del dashboard personalizado',
+        'PUT /personal-data': 'Actualizar datos personales del perfil',
+        'PUT /password': 'Cambiar contraseña del usuario',
+        'PUT /email': 'Cambiar email del usuario',
+        'PUT /notifications': 'Actualizar preferencias de notificaciones',
+        'PUT /image': 'Actualizar imagen de perfil',
+        'DELETE /image': 'Eliminar imagen de perfil',
+        'GET /activity': 'Obtener historial de actividades del usuario',
+        'DELETE /': 'Desactivar cuenta de usuario',
+        'GET /users/:id (admin)': 'Obtener perfil de cualquier usuario',
+        'GET /users/:id/activity (admin)': 'Obtener actividades de cualquier usuario',
+        'POST /users/:id/reset-password (admin)': 'Resetear contraseña de usuario',
+        'POST /users/:id/toggle-status (admin)': 'Activar/desactivar usuario'
       }
     }
   });
